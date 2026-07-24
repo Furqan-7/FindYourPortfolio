@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FindYourPortfolio — 1,578 developer portfolios to inspire your next build</title>
+<meta name="description" content="A browsable directory of 1,578 real developer portfolio sites, indexed from an open-source GitHub collection.">
+
+<!-- Fonts & CSS -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<!-- Preload Local Pre-generated Hero WebP Screenshot (No live mShots dependency) -->
+<link rel="preload" as="image" href="previews/dc7f7d5ded538dadfad92299a01b0d5c.webp" fetchpriority="high">
+
+<script src="script.js" defer></script>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="wordmark" href="#top"><span class="dot"></span>findyourportfolio</a>
+  <div class="nav-right">
+    <span class="nav-count" id="navCount">1,578 portfolios</span>
+    <a class="nav-link" href="https://github.com/Furqan-7/FindYourPortfolio" target="_blank" rel="noopener">Source on GitHub</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div>
+    <p class="eyebrow">Developer portfolio directory</p>
+    <h1>Find your <em>portfolio</em>,<br>before you build one.</h1>
+    <p class="lede">1,578 real developer portfolios, indexed straight from an open-source GitHub list. Search by name or role, browse for inspiration, then go build something better.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#browse">Browse the collection</a>
+      <a class="btn btn-text" href="https://github.com/Furqan-7/FindYourPortfolio" target="_blank" rel="noopener">View the raw data →</a>
+    </div>
+  </div>
+
+  <div class="ide-card">
+    <div class="ide-titlebar">
+      <span class="ide-dot"></span><span class="ide-dot"></span><span class="ide-dot"></span>
+      <span class="ide-tab">feed.json</span>
+      <span class="ide-tab" style="color:var(--primary); background:var(--card); font-weight:600;">hero-preview.png</span>
+    </div>
+
+    <!-- Local Cached Hero Preview Screenshot -->
+    <div class="hero-preview-container">
+      <div class="hero-lqip-placeholder" id="heroPlaceholder"></div>
+      <img
+        class="hero-preview-img"
+        id="heroImg"
+        src="previews/dc7f7d5ded538dadfad92299a01b0d5c.webp"
+        alt="Featured Developer Portfolio Preview"
+        fetchpriority="high"
+        decoding="async"
+        loading="eager"
+        width="640"
+        height="400"
+        onload="this.classList.add('loaded'); document.getElementById('heroPlaceholder').style.opacity='0';"
+      />
+    </div>
+
+    <div class="ide-pane" id="idePane">
+<span class="p">[</span>
+  <span class="p">{</span> <span class="k">"name"</span>: <span class="s">"Aaaabad Ahmed"</span>, <span class="k">"url"</span>: <span class="s">"https://sawad.framer.website"</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="k">"name"</span>: <span class="s">"Aaaaby Alik"</span>, <span class="k">"url"</span>: <span class="s">"https://toukoum.fr"</span> <span class="p">}</span>
+<span class="p">]</span>
+    </div>
+    <div class="ide-pipeline">
+      <span class="pill pill-read">Fetched</span>
+      <span class="pill pill-grep">Parsed</span>
+      <span class="pill pill-done">Indexed</span>
+    </div>
+  </div>
+</header>
+
+<main class="browse" id="browse">
+  <div class="browse-head">
+    <div class="search-row">
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or role — e.g. “full stack”, “design engineer”, “devops”…" autocomplete="off">
+      <span class="results-count" id="resultsCount"></span>
+    </div>
+    <div class="alpha-row" id="alphaRow"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <strong>No matches</strong>
+    Try a different name, role, or letter.
+  </div>
+  <div id="sentinel"></div>
+</main>
+
+<footer class="footer">
+  <span>Data sourced from the community-maintained <a href="https://github.com/Furqan-7/FindYourPortfolio" target="_blank" rel="noopener">FindYourPortfolio</a> collection on GitHub.</span>
+  <span>Built for browsing, not tracking — no sign-up required.</span>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "findyourportfolio",
+  "version": "2.0.0",
+  "description": "High-performance developer portfolio directory with pre-generated preview screenshots",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "generate-previews": "node generate-screenshots.js",
+    "update-previews": "node update-screenshots.js"
+  },
+  "keywords": [
+    "portfolio",
+    "performance",
+    "previews",
+    "puppeteer",
+    "playwright"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^24.1.0",
+    "puppeteer-core": "^24.43.1"
+  }
+}
