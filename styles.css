@@ -70,19 +70,22 @@ a{color:inherit;}
 .wordmark{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
   font-size:16px;
   font-weight:600;
   letter-spacing:-0.2px;
   text-decoration:none;
   color:var(--ink);
 }
-.wordmark .dot{
-  width:9px; height:9px; border-radius:50%;
-  background:var(--primary);
+.brand-logo{
   display:inline-block;
   flex:none;
+  transition:transform 0.2s ease;
 }
+.wordmark:hover .brand-logo{
+  transform:scale(1.05);
+}
+
 .nav-right{
   display:flex;
   align-items:center;
@@ -318,6 +321,43 @@ a{color:inherit;}
   color:var(--muted);
 }
 
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--surface-strong);
+  color: var(--body);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sort-btn:hover {
+  background: var(--hairline-strong);
+  color: var(--ink);
+}
+.sort-btn.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+.sort-btn .heart-icon {
+  width: 13px;
+  height: 13px;
+}
+
 .alpha-row{
   display:flex;
   flex-wrap:wrap;
@@ -443,6 +483,9 @@ a{color:inherit;}
   min-width:0;
   flex:1;
   padding:14px 16px 16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
 }
 .card-name{
   font-size:15px;
@@ -456,13 +499,22 @@ a{color:inherit;}
 .card-tagline{
   font-size:12.5px;
   color:var(--muted);
-  margin:0 0 6px;
+  margin:0 0 10px;
   display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
   min-height:37.5px;
 }
+
+.card-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .card-url{
   font-family:var(--font-mono);
   font-size:11.5px;
@@ -471,6 +523,61 @@ a{color:inherit;}
   overflow:hidden;
   text-overflow:ellipsis;
   display:block;
+  flex: 1;
+}
+
+/* ---------- Like Button Styles ---------- */
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--canvas-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex: none;
+}
+
+.like-btn:hover {
+  background: var(--hairline-soft);
+  color: var(--primary);
+  border-color: var(--hairline-strong);
+}
+
+.like-btn.liked {
+  background: rgba(245, 78, 0, 0.08);
+  border-color: rgba(245, 78, 0, 0.25);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.like-btn .heart-icon {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), fill 0.15s ease;
+}
+
+.like-btn:active .heart-icon {
+  transform: scale(1.3);
+}
+
+.like-btn.liked .heart-icon {
+  fill: var(--primary);
+  stroke: var(--primary);
+  animation: heart-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
 }
 
 .empty-state{

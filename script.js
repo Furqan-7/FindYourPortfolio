@@ -1,11 +1,5 @@
 /**
- * FindYourPortfolio — Local Screenshot Pipeline Engine
- *
- * Pre-generated preview screenshot system:
- * - Loads local WebP screenshots from ./previews/ folder.
- * - Zero dependency on WordPress mShots during page loads.
- * - Instant preview display without "Generating Preview..." delays.
- * - Fallback to clean initials placeholder on missing images.
+ * FindYourPortfolio — Local Screenshot Pipeline Engine with Real-Time Likes & Custom Branding
  */
 
 (function () {
@@ -15,11 +9,31 @@
   let DATA = [];
   let filtered = [];
   const presentLetters = {};
+  const likesMap = {}; // { [url]: count }
+
+  // Client-side liked portfolios persistence
+  const LIKED_STORAGE_KEY = "liked_portfolios_v1";
+  let userLikedSet = new Set();
+  try {
+    const stored = localStorage.getItem(LIKED_STORAGE_KEY);
+    if (stored) {
+      userLikedSet = new Set(JSON.parse(stored));
+    }
+  } catch (e) {
+    userLikedSet = new Set();
+  }
+
+  function saveUserLikes() {
+    try {
+      localStorage.setItem(LIKED_STORAGE_KEY, JSON.stringify(Array.from(userLikedSet)));
+    } catch (e) {}
+  }
 
   const BATCH_SIZE = 30;
   const state = {
     query: "",
     letter: "All",
+    sortMode: "alphabetical", // "alphabetical" | "most-liked"
     rendered: 0
   };
 
@@ -34,6 +48,7 @@
   const countEl = document.getElementById("resultsCount");
   const navCountEl = document.getElementById("navCount");
   const alphaRowEl = document.getElementById("alphaRow");
+  const mostLikedBtn = document.getElementById("mostLikedBtn");
   const searchInput = document.getElementById("searchInput");
   const sentinelEl = document.getElementById("sentinel");
 
@@ -252,7 +267,6 @@
       };
 
       imgNode.onerror = () => {
-        // Fallback gracefully to clean initials placeholder (Never mShots placeholder)
         imgNode.style.display = "none";
         if (imgNode.parentElement) {
           imgNode.parentElement.classList.remove("skeleton");
@@ -285,6 +299,53 @@
     const res = url.replace(/^https?:\/\//, "");
     cleanUrlCache.set(url, res);
     return res;
+  }
+
+  function toggleLike(url, btnEl) {
+    const hasLiked = userLikedSet.has(url);
+    let count = likesMap[url] || 0;
+
+    if (hasLiked) {
+      userLikedSet.delete(url);
+      count = Math.max(0, count - 1);
+      likesMap[url] = count;
+    } else {
+      userLikedSet.add(url);
+      count += 1;
+      likesMap[url] = count;
+    }
+
+    saveUserLikes();
+
+    // Update Card UI
+    const isNowLiked = userLikedSet.has(url);
+    if (btnEl) {
+      if (isNowLiked) {
+        btnEl.classList.add("liked");
+      } else {
+        btnEl.classList.remove("liked");
+      }
+      const heartSvg = btnEl.querySelector(".heart-icon");
+      if (heartSvg) {
+        heartSvg.setAttribute("fill", isNowLiked ? "currentColor" : "none");
+      }
+      const countSpan = btnEl.querySelector(".like-count");
+      if (countSpan) {
+        countSpan.textContent = count.toLocaleString();
+      }
+    }
+
+    // Call API Endpoint asynchronously
+    fetch("/api/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, action: isNowLiked ? "like" : "unlike" })
+    }).catch(err => console.error("Error updating like on server:", err));
+
+    // If "Most Liked" sort mode is active, update grid layout order
+    if (state.sortMode === "most-liked") {
+      applyFilters();
+    }
   }
 
   function createCard(d) {
@@ -336,13 +397,39 @@
     tagline.className = "card-tagline";
     tagline.textContent = d.tagline || " ";
 
+    const footerRow = document.createElement("div");
+    footerRow.className = "card-footer-row";
+
     const url = document.createElement("span");
     url.className = "card-url";
     url.textContent = cleanUrl(d.url);
 
+    const isLiked = userLikedSet.has(d.url);
+    const likesCount = likesMap[d.url] || 0;
+
+    const likeBtn = document.createElement("button");
+    likeBtn.type = "button";
+    likeBtn.className = "like-btn" + (isLiked ? " liked" : "");
+    likeBtn.setAttribute("aria-label", "Like portfolio");
+    likeBtn.innerHTML = `
+      <svg class="heart-icon" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+      </svg>
+      <span class="like-count">${likesCount.toLocaleString()}</span>
+    `;
+
+    likeBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleLike(d.url, likeBtn);
+    });
+
+    footerRow.appendChild(url);
+    footerRow.appendChild(likeBtn);
+
     body.appendChild(name);
     body.appendChild(tagline);
-    body.appendChild(url);
+    body.appendChild(footerRow);
 
     a.appendChild(preview);
     a.appendChild(body);
@@ -370,33 +457,62 @@
     const letters = ["All", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
     let html = "";
     letters.forEach((L) => {
-      const isActive = L === state.letter;
+      const isActive = state.sortMode === "alphabetical" && L === state.letter;
       const isDisabled = L !== "All" && !presentLetters[L];
       html += `<button type="button" class="alpha-btn${isActive ? " active" : ""}" data-letter="${L}"${isDisabled ? " disabled" : ""}>${L}</button>`;
     });
     alphaRowEl.innerHTML = html;
   }
 
+  // Alpha Filter Buttons Handler
   alphaRowEl.addEventListener("click", (e) => {
     const btn = e.target.closest(".alpha-btn");
     if (!btn || btn.disabled) return;
     const letter = btn.dataset.letter;
-    if (letter && letter !== state.letter) {
+    if (letter) {
+      state.sortMode = "alphabetical";
       state.letter = letter;
+      if (mostLikedBtn) mostLikedBtn.classList.remove("active");
       applyFilters();
     }
   });
 
+  // Most Liked Sort Button Handler
+  if (mostLikedBtn) {
+    mostLikedBtn.addEventListener("click", () => {
+      if (state.sortMode === "most-liked") {
+        state.sortMode = "alphabetical";
+        mostLikedBtn.classList.remove("active");
+      } else {
+        state.sortMode = "most-liked";
+        mostLikedBtn.classList.add("active");
+      }
+      applyFilters();
+    });
+  }
+
   function applyFilters() {
     const q = state.query.trim().toLowerCase();
+    
+    // Filter by query and letter
     filtered = DATA.filter((d) => {
-      if (state.letter !== "All" && firstLetter(d.name) !== state.letter) return false;
+      if (state.sortMode === "alphabetical" && state.letter !== "All" && firstLetter(d.name) !== state.letter) return false;
       if (!q) return true;
       return (
         d.name.toLowerCase().includes(q) ||
         (d.tagline && d.tagline.toLowerCase().includes(q))
       );
     });
+
+    // Apply Most Liked Sort if active
+    if (state.sortMode === "most-liked") {
+      filtered.sort((a, b) => {
+        const likesA = likesMap[a.url] || 0;
+        const likesB = likesMap[b.url] || 0;
+        if (likesB !== likesA) return likesB - likesA;
+        return a.name.localeCompare(b.name);
+      });
+    }
 
     state.rendered = 0;
     gridEl.innerHTML = "";
@@ -450,6 +566,18 @@
 
   async function loadData() {
     try {
+      // 1. Fetch persistent Likes data
+      try {
+        const likesResp = await fetch("/api/likes");
+        if (likesResp.ok) {
+          const remoteLikes = await likesResp.json();
+          Object.assign(likesMap, remoteLikes);
+        }
+      } catch (e) {
+        console.warn("Could not fetch remote likes map, using local fallback");
+      }
+
+      // 2. Fetch Portfolios data
       const resp = await fetch("portfolios.json");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       DATA = await resp.json();
@@ -463,7 +591,7 @@
       applyFilters();
       scheduleIdleTasks();
     } catch (err) {
-      console.error("Failed to load portfolios.json:", err);
+      console.error("Failed to load portfolios data:", err);
       countEl.textContent = "Error loading portfolios data.";
     }
   }
