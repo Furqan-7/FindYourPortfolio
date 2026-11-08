@@ -23,6 +23,8 @@ a built-in backend with SQLite locally and Neon Postgres in production, instant 
   - Sites without a full-page screenshot, and single-screen sites, stay live and don't scroll.
 - **Click to visit.** Clicking anywhere on a card opens the portfolio in a new tab. The like button works on its own
   without opening the site.
+- **Featured portfolio.** The home page hero shows a featured portfolio live, by default
+  [furqan7.dev](https://furqan7.dev). Set `FEATURED_PORTFOLIO_URL` to feature a different one.
 - **Rankings.** *Best of the week* (rolling 7 days), *Best of the year* (rolling 365 days) and *All time*, on
   `/rankings`. The top of the week is also featured on the home page.
 - **Add your portfolio.** Use the `/submit` form. It validates input, blocks duplicates and private or internal
