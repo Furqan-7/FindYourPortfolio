@@ -13,12 +13,15 @@ export function PreviewImage({
   preview,
   priority = false,
   className = "",
+  children,
 }: {
   name: string;
   url: string;
   preview: string | null;
   priority?: boolean;
   className?: string;
+  /** Rendered on top of the screenshot (e.g. the live iframe layer). */
+  children?: React.ReactNode;
 }) {
   const sources = preview ? [preview, remoteScreenshot(url)] : [remoteScreenshot(url)];
   const [index, setIndex] = useState(0);
@@ -69,6 +72,7 @@ export function PreviewImage({
           }}
         />
       )}
+      {children}
     </div>
   );
 }

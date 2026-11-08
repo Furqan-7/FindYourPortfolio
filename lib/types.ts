@@ -17,6 +17,8 @@ export type Portfolio = {
   preview: string | null;
   isCommunity: boolean;
   createdAt: number;
+  /** Whether the site can be shown in an iframe; null until checked. */
+  frameable: boolean | null;
 };
 
 export type PortfolioWithCounts = Portfolio & { likes: LikeCounts };
