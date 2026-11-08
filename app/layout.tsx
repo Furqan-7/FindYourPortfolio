@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { SiteNav } from "@/components/SiteNav";
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
+const SITE_URL = siteUrl();
+
+// Share images come from app/opengraph-image.png and app/twitter-image.png:
+// Next.js adds the og:image / twitter:image tags (with type, size and a
+// cache-busting hash) and makes them absolute using metadataBase.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://findyourportfolio.vercel.app"),
+  metadataBase: SITE_URL,
 
   title: {
     default: "FindYourPortfolio",
@@ -19,16 +25,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FindYourPortfolio",
     description: "Discover amazing developer portfolios and share your own.",
-    url: "https://findyourportfolio.vercel.app",
+    url: "/",
     siteName: "FindYourPortfolio",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "FindYourPortfolio",
-      },
-    ],
     type: "website",
   },
 
@@ -36,7 +34,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FindYourPortfolio",
     description: "Discover, share and explore developer portfolios.",
-    images: ["/og-image.png"],
   },
 };
 
