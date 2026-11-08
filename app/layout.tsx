@@ -31,14 +31,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteNav />
         {children}
         <footer className="footer">
-          <span>
-            Data sourced from the community-maintained{" "}
-            <a href="https://github.com/Furqan-7/FindYourPortfolio" target="_blank" rel="noopener noreferrer">
-              FindYourPortfolio
-            </a>{" "}
-            collection on GitHub.
-          </span>
-          <span>Built for browsing, not tracking — no sign-up required.</span>
+          <div className="footer-inner">
+            <span>
+              Data sourced from the community-maintained{" "}
+              <a href="https://github.com/Furqan-7/FindYourPortfolio" target="_blank" rel="noopener noreferrer">
+                FindYourPortfolio
+              </a>{" "}
+              collection on GitHub.
+            </span>
+            <span>Built for browsing, not tracking — no sign-up required.</span>
+          </div>
         </footer>
       </body>
     </html>
