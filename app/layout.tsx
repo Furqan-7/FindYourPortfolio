@@ -7,16 +7,36 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://findyourportfolio.vercel.app"),
+
   title: {
-    default: "FindYourPortfolio — developer portfolios to inspire your next build",
+    default: "FindYourPortfolio",
+    // Sub-pages read e.g. "Rankings · FindYourPortfolio".
     template: "%s · FindYourPortfolio",
   },
-  description:
-    "A browsable directory of real developer portfolio sites with live previews, weekly and yearly rankings, and community submissions.",
+  description: "Discover, share and explore developer portfolios. Add yours and get discovered.",
+
   openGraph: {
     title: "FindYourPortfolio",
-    description: "Browse, preview and rank real developer portfolios. Add your own.",
+    description: "Discover amazing developer portfolios and share your own.",
+    url: "https://findyourportfolio.vercel.app",
+    siteName: "FindYourPortfolio",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FindYourPortfolio",
+      },
+    ],
     type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "FindYourPortfolio",
+    description: "Discover, share and explore developer portfolios.",
+    images: ["/og-image.png"],
   },
 };
 
