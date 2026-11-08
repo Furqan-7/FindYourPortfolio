@@ -13,13 +13,16 @@
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
+    "@neondatabase/serverless": "^1.2.0",
     "next": "16.4.5",
+    "pg": "^8.23.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "puppeteer-core": "^24.43.1",

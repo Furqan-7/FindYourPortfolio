@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getLikeCounts, getPortfolioRecord, setLike } from "@/lib/portfolios";
+import { getLikeCounts, getPortfolioRecord, hasLiked, setLike } from "@/lib/portfolios";
 import { ensureVoterId, readVoterId } from "@/lib/voter";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { getDb } from "@/lib/db";
 
 async function parseId(params: Promise<{ id: string }>) {
   const id = Number((await params).id);
@@ -14,14 +13,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/portfolios/[id]
   const id = await parseId(ctx.params);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   const voterId = await readVoterId();
-  const db = await getDb();
-  const [likes, mine] = await Promise.all([
-    getLikeCounts(id),
-    voterId
-      ? db.execute({ sql: "SELECT 1 FROM likes WHERE portfolio_id = ? AND voter_id = ?", args: [id, voterId] })
-      : null,
-  ]);
-  return NextResponse.json({ liked: Boolean(mine?.rows.length), likes }, { headers: { "Cache-Control": "no-store" } });
+  const [likes, liked] = await Promise.all([getLikeCounts(id), hasLiked(id, voterId)]);
+  return NextResponse.json({ liked, likes }, { headers: { "Cache-Control": "no-store" } });
 }
 
 /**

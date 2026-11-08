@@ -70,16 +70,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You've reached today's submission limit. Try again tomorrow." }, { status: 429 });
   }
 
-  try {
-    const { portfolio, status } = await createPortfolio({ name, url: url.url, tagline, submittedBy: voterId });
-    return NextResponse.json({ ok: true, status, portfolio }, { status: 201 });
-  } catch (err) {
-    if (String(err).includes("UNIQUE")) {
-      return NextResponse.json(
-        { error: "This portfolio was just added.", fieldErrors: { url: "This URL is already in the directory." } },
-        { status: 409 },
-      );
-    }
-    throw err;
+  const created = await createPortfolio({ name, url: url.url, tagline, submittedBy: voterId });
+  if (!created) {
+    // Lost a race with an identical submission.
+    return NextResponse.json(
+      { error: "This portfolio was just added.", fieldErrors: { url: "This URL is already in the directory." } },
+      { status: 409 },
+    );
   }
+  return NextResponse.json({ ok: true, status: created.status, portfolio: created.portfolio }, { status: 201 });
 }
