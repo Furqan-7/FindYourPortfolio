@@ -31,6 +31,7 @@
   /* Shared content column: nav, page sections and footer all line up on it. */
   --container:80rem;
   --gutter:2rem;
+  --card-min:18.125rem;
 
   --r-xs:0.25rem; --r-sm:0.375rem; --r-md:0.5rem; --r-lg:0.75rem; --r-xl:1rem; --r-pill:624.9375rem;
 }
@@ -39,7 +40,13 @@
    Large screens use 75% (the same look as 75% browser zoom); phones and
    tablets keep 100% for readability. */
 html{font-size:100%;}
-@media (min-width:1024px){ html{font-size:75%;} }
+@media (min-width:1024px){
+  html{font-size:75%;}
+  /* Wider content column on desktop so wide screens aren't mostly empty
+     margins (120rem = 1440px at the 75% root size). */
+  /* Bigger cards there too, so the live previews stay legible. */
+  :root{--container:120rem; --gutter:2.5rem; --card-min:24rem;}
+}
 
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
@@ -144,6 +151,7 @@ button{font:inherit; color:inherit;}
 }
 @media (min-width:640px){ .hero h1{font-size:3rem; letter-spacing:-1.6px;} .page-head h1{font-size:2.75rem;} }
 @media (min-width:1024px){ .hero h1{font-size:4rem; letter-spacing:-2.16px;} }
+@media (min-width:1280px){ .hero h1{font-size:5rem; letter-spacing:-2.6px;} .hero .lede{font-size:1.25rem;} }
 .hero h1 em{font-style:normal; color:var(--primary);}
 .lede{font-size:1.0625rem; color:var(--body); max-width:52ch; margin:0 0 2rem;}
 .hero-ctas{display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;}
@@ -221,7 +229,7 @@ button{font:inherit; color:inherit;}
 
 /* ---------- Grid & cards ---------- */
 .grid{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(18.125rem, 1fr));
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(min(var(--card-min), 100%), 1fr));
   gap:1.25rem; margin-top:1.5rem;
 }
 .grid-top{margin-top:0;}
