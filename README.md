@@ -11,13 +11,18 @@ a built-in backend with SQLite locally and Neon Postgres in production, instant 
   screenshot.
   - The saved screenshot shows instantly and fades into the live site once it has rendered.
   - To keep scrolling smooth, live sites load only for cards on screen and unload when you scroll away. At most 6 run
-    at once on desktop and 2 on phones, and they pause while the full-screen preview is open.
+    at once on desktop and 2 on phones.
   - The **Live previews** switch turns this off. The choice is remembered, and it's off by default when the browser
     has data saver on.
   - Some sites refuse to be shown inside other pages (`X-Frame-Options` / CSP `frame-ancestors`). The server
     detects this, caches the result for a week, and those cards keep the screenshot instead of a broken frame.
-- **Full-screen live preview.** Clicking a card opens the site with Desktop, Tablet and Mobile frames. You can step
-  through portfolios with ← / →, and like or visit a site without leaving the modal.
+- **Hover to scroll.** Rest the mouse on a card for 3 seconds (a progress bar fills along the bottom) and the
+  preview scrolls smoothly down the whole page. Move the mouse away and it glides back to the live site.
+  - Browsers don't let a page scroll another site embedded in it, so the scroll runs over a full-page screenshot
+    (see [Generating preview screenshots](#generating-preview-screenshots)).
+  - Sites without a full-page screenshot, and single-screen sites, stay live and don't scroll.
+- **Click to visit.** Clicking anywhere on a card opens the portfolio in a new tab. The like button works on its own
+  without opening the site.
 - **Rankings.** *Best of the week* (rolling 7 days), *Best of the year* (rolling 365 days) and *All time*, on
   `/rankings`. The top of the week is also featured on the home page.
 - **Add your portfolio.** Use the `/submit` form. It validates input, blocks duplicates and private or internal
@@ -53,10 +58,10 @@ app/
   api/
     portfolios/route.ts          # GET list · POST submit
     portfolios/[id]/like/route.ts   # GET state · POST { liked }
-    portfolios/[id]/embed/route.ts  # GET { frameable } (cached)
     embed/route.ts               # GET ?ids=1,2,3 → batched embed checks for the cards
     rankings/route.ts            # GET ?period=week|year|all
-components/                      # client UI (cards, like store, preview modal, forms)
+components/                      # client UI (cards, like store, forms)
+  live/                          # live iframe layer, hover-scroll, slot limits, embed-check cache
 lib/
   db.ts                          # SQLite / Neon / Postgres adapters, schema, automatic seeding
   portfolios.ts                  # queries (lists, rankings, likes, submissions)
@@ -66,7 +71,9 @@ data/
   portfolios.json                # seed list (synced into the DB on boot)
   legacy-likes.json              # likes migrated from the old likes.json
   preview-manifest.json          # which screenshots exist in public/previews
-public/previews/                 # pre-generated WebP screenshots
+  fullpage-manifest.json         # which full-page shots exist in public/previews/full
+public/previews/                 # pre-generated WebP screenshots (1280x800)
+public/previews/full/            # full-page WebP shots used for hover-to-scroll
 scripts/generate-screenshots.mjs # screenshot pipeline (puppeteer-core)
 ```
 
@@ -129,17 +136,34 @@ npm run build && npm start
 
 ### Generating preview screenshots
 
-Portfolios without a saved screenshot (including new submissions) use a remote screenshot service
-(`NEXT_PUBLIC_SCREENSHOT_URL`), and fall back to the person's initials. To create local WebP previews for every
-portfolio that's missing one:
+The screenshot script captures two images for every portfolio that's missing them:
+
+| Image | Size | Used for |
+| --- | --- | --- |
+| `public/previews/<hash>.webp` | 1280×800 | Instant placeholder while the live site loads |
+| `public/previews/full/<hash>.webp` | 640 px wide, up to 6 screens tall | The hover-to-scroll effect |
+
+Before taking the full-page shot, the script scrolls through each page so lazy images and scroll animations have
+appeared.
+
+Run it on a computer with internet access and Chrome or Chromium installed. Set `CHROME_PATH` if it isn't found
+automatically.
 
 ```bash
 npm run previews
 ```
 
-This needs a local Chrome or Chromium. Set `CHROME_PATH` if it isn't found automatically. The script writes to
-`public/previews/` and refreshes `data/preview-manifest.json`. Rebuild afterwards to serve the new screenshots.
+A full run over all portfolios takes roughly an hour. Afterwards, commit `public/previews/` and the two manifest
+files in `data/`, then redeploy.
 
+To capture specific sites only, or to re-capture them:
+
+```bash
+ONLY=example.com FORCE=1 npm run previews
+```
+
+Portfolios without a saved screenshot (such as new submissions) use a remote screenshot service
+(`NEXT_PUBLIC_SCREENSHOT_URL`) as the placeholder, and fall back to the person's initials.
 ---
 
 ## 📜 License

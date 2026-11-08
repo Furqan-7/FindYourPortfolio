@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb, type DbRow } from "./db";
-import { localPreviewFor } from "./previews";
+import { fullPreviewFor, localPreviewFor } from "./previews";
 import { urlKey } from "./url";
 import { PERIODS, type LikeCounts, type Period, type PortfolioWithCounts, type RankedPortfolio } from "./types";
 
@@ -49,6 +49,7 @@ function toPortfolio(r: DbRow): PortfolioWithCounts {
     url,
     tagline: String(r.tagline ?? ""),
     preview: localPreviewFor(url),
+    fullPreview: fullPreviewFor(url),
     isCommunity: r.source === "community",
     createdAt: Number(r.created_at),
     frameable: freshFrameable(r),

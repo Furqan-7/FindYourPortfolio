@@ -15,6 +15,8 @@ export type Portfolio = {
   tagline: string;
   /** Local WebP screenshot path, or null when a remote screenshot is needed. */
   preview: string | null;
+  /** Full-page screenshot scrolled through on hover, or null. */
+  fullPreview: string | null;
   isCommunity: boolean;
   createdAt: number;
   /** Whether the site can be shown in an iframe; null until checked. */
