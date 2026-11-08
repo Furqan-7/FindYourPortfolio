@@ -62,13 +62,24 @@ function writeManifest() {
 }
 
 async function communityUrls() {
+  const query = "SELECT name, url FROM portfolios WHERE source = 'community' AND status = 'approved'";
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL || `file:${path.join(ROOT, "data", "app.db")}`;
   try {
-    const { createClient } = await import("@libsql/client");
-    const url = process.env.DATABASE_URL || `file:${path.join(ROOT, "data", "app.db")}`;
-    if (url.startsWith("file:") && !fs.existsSync(url.slice(5))) return [];
-    const db = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
-    const res = await db.execute("SELECT name, url FROM portfolios WHERE source = 'community' AND status = 'approved'");
-    return res.rows.map((r) => ({ name: String(r.name), url: String(r.url) }));
+    let rows;
+    if (/^postgres(ql)?:\/\//i.test(url)) {
+      // Works for Neon too (direct TCP connection with sslmode=require).
+      const { default: pg } = await import("pg");
+      const client = new pg.Client({ connectionString: url });
+      await client.connect();
+      rows = (await client.query(query)).rows;
+      await client.end();
+    } else {
+      if (url.startsWith("file:") && !fs.existsSync(url.slice(5))) return [];
+      const { createClient } = await import("@libsql/client");
+      const db = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
+      rows = (await db.execute(query)).rows;
+    }
+    return rows.map((r) => ({ name: String(r.name), url: String(r.url) }));
   } catch (err) {
     console.warn(`⚠️  Could not read community submissions from the database: ${err.message}`);
     return [];

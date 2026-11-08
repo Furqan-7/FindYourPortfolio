@@ -1,7 +1,7 @@
 # FindYourPortfolio 🚀
 
 A fast, responsive directory of **1,500+ real developer portfolio sites**, built with **Next.js 16 (App Router)**. It has
-an embedded database, instant live previews, likes, weekly and yearly rankings, and community submissions.
+a built-in backend with SQLite locally and Neon Postgres in production, instant live previews, likes, weekly and yearly rankings, and community submissions.
 
 ---
 
@@ -52,7 +52,7 @@ app/
     rankings/route.ts            # GET ?period=week|year|all
 components/                      # client UI (cards, like store, preview modal, forms)
 lib/
-  db.ts                          # libSQL client, schema, automatic seeding
+  db.ts                          # SQLite / Neon / Postgres adapters, schema, automatic seeding
   portfolios.ts                  # queries (lists, rankings, likes, submissions)
   embed.ts                       # SSRF-safe iframe-ability check
   url.ts, previews.ts, voter.ts, rate-limit.ts, types.ts, format.ts
@@ -68,26 +68,38 @@ scripts/generate-screenshots.mjs # screenshot pipeline (puppeteer-core)
 
 ## 🗄️ Database
 
-The app uses **libSQL (SQLite)** through `@libsql/client`, so no separate database server is needed.
+The database layer runs the same SQL on two engines:
 
-- **Local (default):** the database is a file at `data/app.db`, created automatically. On first boot it creates the
-  tables and seeds them from `data/portfolios.json`. When the seed file changes, the new entries are synced on the
-  next boot.
-- **Production / serverless (e.g. Vercel):** the serverless file system doesn't keep data between requests, so point
-  the app at a hosted libSQL database such as [Turso](https://turso.tech):
+| Setup | `DATABASE_URL` | Driver |
+| --- | --- | --- |
+| **Local development** (default) | *unset* | SQLite file at `data/app.db` (libSQL) |
+| **Production on Vercel** | Neon connection string | Neon serverless driver (HTTP, no connection pool to manage) |
+| Other Postgres | `postgres://…` | `pg` |
+| Turso | `libsql://…` plus `DATABASE_AUTH_TOKEN` | libSQL |
 
-  ```bash
-  DATABASE_URL=libsql://your-db.turso.io
-  DATABASE_AUTH_TOKEN=...
-  ```
+When the app starts, it creates the tables and seeds them from `data/portfolios.json`. On Postgres an advisory lock
+makes sure several serverless instances starting at once don't collide. If the seed file changes, the new entries are
+synced on the next start. You never need to run migrations by hand.
 
-  If `DATABASE_URL` isn't set on Vercel, the app falls back to `/tmp`. It still works, but data resets on cold starts.
+Tables:
 
-Tables: `portfolios` (seed and community entries, moderation `status`, cached `frameable`), `likes` (one row per
-visitor per portfolio, with a timestamp for the weekly and yearly windows), and `meta`.
+- `portfolios`: seed and community entries, with a moderation `status` and the cached `frameable` result
+- `likes`: one row per visitor per portfolio, with a timestamp for the weekly and yearly windows
+- `meta`: internal settings, such as which version of the seed list has been loaded
 
-See `.env.example` for all options, including `SUBMISSIONS_REQUIRE_REVIEW=true`, which holds new submissions as
-`pending` until you set their status to `approved`.
+### Deploying to Vercel with Neon
+
+1. Create a Neon database, using either option:
+   - In Vercel, open **Storage → Create → Neon** and connect it to this project. This sets `DATABASE_URL` for you.
+   - In the Neon console, create a project and copy the **pooled** connection string (the host contains `-pooler`).
+     Then add it in Vercel under **Settings → Environment Variables** as `DATABASE_URL`.
+2. Redeploy. The first request creates the tables and loads all portfolios.
+
+If no database URL is set on Vercel, the app falls back to a temporary SQLite file. It still works, but likes and
+submissions are lost whenever the server restarts.
+
+See `.env.example` for all options. For example, `SUBMISSIONS_REQUIRE_REVIEW=true` holds new submissions as `pending`
+until you set their `status` to `approved`.
 
 ---
 

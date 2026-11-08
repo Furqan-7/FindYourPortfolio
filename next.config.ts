@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Database drivers load at runtime from node_modules instead of being bundled.
+  serverExternalPackages: ["@neondatabase/serverless", "@libsql/client", "pg"],
   async headers() {
     return [
       {
