@@ -75,7 +75,7 @@ export function LivePreviewModal({
     setFrameLoaded(false);
     setChecked(false);
     setSlow(false);
-    embedStatus(portfolio.id).then((frameable) => {
+    embedStatus(portfolio).then((frameable) => {
       if (cancelled) return;
       setChecked(true);
       if (frameable === false) setPhase("blocked");
@@ -85,7 +85,7 @@ export function LivePreviewModal({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [portfolio.id, reloadKey, embedStatus]);
+  }, [portfolio, reloadKey, embedStatus]);
 
   useEffect(() => {
     if (frameLoaded && checked) setPhase((p) => (p === "loading" ? "live" : p));

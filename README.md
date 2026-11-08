@@ -7,12 +7,17 @@ a built-in backend with SQLite locally and Neon Postgres in production, instant 
 
 ## ✨ Features
 
-- **Live preview for every portfolio.** One click opens the real site in a scaled iframe with Desktop, Tablet and Mobile
-  frames. You can step through portfolios with ← / →, and like or visit a site without leaving the modal.
-  - The saved screenshot shows instantly while the live site loads, so the preview never starts as a blank box.
-  - Hovering a card warms up the connection (`preconnect`) and runs the embed check before you click.
-  - Sites that refuse embedding (`X-Frame-Options` / CSP `frame-ancestors`) are detected on the server and cached in
-    the DB. For those you see the screenshot and an "Open in new tab" button instead of a broken frame.
+- **Live previews in the cards.** Each card shows the real website running, shrunk to fit, instead of a static
+  screenshot.
+  - The saved screenshot shows instantly and fades into the live site once it has rendered.
+  - To keep scrolling smooth, live sites load only for cards on screen and unload when you scroll away. At most 6 run
+    at once on desktop and 2 on phones, and they pause while the full-screen preview is open.
+  - The **Live previews** switch turns this off. The choice is remembered, and it's off by default when the browser
+    has data saver on.
+  - Some sites refuse to be shown inside other pages (`X-Frame-Options` / CSP `frame-ancestors`). The server
+    detects this, caches the result for a week, and those cards keep the screenshot instead of a broken frame.
+- **Full-screen live preview.** Clicking a card opens the site with Desktop, Tablet and Mobile frames. You can step
+  through portfolios with ← / →, and like or visit a site without leaving the modal.
 - **Rankings.** *Best of the week* (rolling 7 days), *Best of the year* (rolling 365 days) and *All time*, on
   `/rankings`. The top of the week is also featured on the home page.
 - **Add your portfolio.** Use the `/submit` form. It validates input, blocks duplicates and private or internal
@@ -49,6 +54,7 @@ app/
     portfolios/route.ts          # GET list · POST submit
     portfolios/[id]/like/route.ts   # GET state · POST { liked }
     portfolios/[id]/embed/route.ts  # GET { frameable } (cached)
+    embed/route.ts               # GET ?ids=1,2,3 → batched embed checks for the cards
     rankings/route.ts            # GET ?period=week|year|all
 components/                      # client UI (cards, like store, preview modal, forms)
 lib/

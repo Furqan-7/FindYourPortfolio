@@ -5,6 +5,7 @@ import { PreviewImage } from "./PreviewImage";
 import { usePreview } from "./PreviewProvider";
 import { useLike } from "./LikesProvider";
 import { displayUrl } from "@/lib/format";
+import { LiveFrame } from "./live/LiveFrame";
 
 function Row({ p, last }: { p: Portfolio; last: boolean }) {
   const { counts } = useLike(p.id);
@@ -38,8 +39,10 @@ export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Por
         onPointerEnter={() => prefetch(portfolio)}
         aria-label={`Open live preview of ${portfolio.name}'s portfolio`}
       >
-        <PreviewImage name={portfolio.name} url={portfolio.url} preview={portfolio.preview} priority />
-        <span className="live-chip">▶ Live preview · {displayUrl(portfolio.url)}</span>
+        <PreviewImage name={portfolio.name} url={portfolio.url} preview={portfolio.preview} priority>
+          <LiveFrame portfolio={portfolio} />
+        </PreviewImage>
+        <span className="live-chip">▶ Open full preview · {displayUrl(portfolio.url)}</span>
       </button>
       <pre className="ide-pane">
         <span className="p">[</span>

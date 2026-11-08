@@ -6,6 +6,7 @@ import type { Portfolio, SortMode } from "@/lib/types";
 import { firstLetter, formatCount } from "@/lib/format";
 import { PortfolioCard } from "./PortfolioCard";
 import { useLikeStore } from "./LikesProvider";
+import { setLivePreviews, useLivePreviewsEnabled } from "./live/liveSlots";
 
 const SORTS: { key: SortMode; label: string }[] = [
   { key: "az", label: "A–Z" },
@@ -26,6 +27,7 @@ export function PortfolioBrowser({
   initialQuery?: string;
 }) {
   const store = useLikeStore();
+  const liveEnabled = useLivePreviewsEnabled();
   const [query, setQuery] = useState(initialQuery);
   const [letter, setLetter] = useState("All");
   const [sort, setSort] = useState<SortMode>(initialSort);
@@ -100,6 +102,20 @@ export function PortfolioBrowser({
         </div>
         <div className="filter-bar">
           <div className="sort-row" role="group" aria-label="Sort portfolios">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={liveEnabled}
+              className={`live-toggle${liveEnabled ? " on" : ""}`}
+              onClick={() => setLivePreviews(!liveEnabled)}
+              title="Show the real websites inside the cards instead of screenshots"
+            >
+              <span className="live-toggle-track" aria-hidden="true">
+                <span className="live-toggle-thumb" />
+              </span>
+              Live previews
+            </button>
+            <span className="sort-divider" aria-hidden="true" />
             {SORTS.map((s) => (
               <button
                 key={s.key}

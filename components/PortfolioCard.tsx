@@ -1,12 +1,13 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { Portfolio } from "@/lib/types";
 import { displayUrl } from "@/lib/format";
 import { PreviewImage } from "./PreviewImage";
 import { LikeButton } from "./LikeButton";
 import { EyeIcon } from "./Icons";
 import { usePreview } from "./PreviewProvider";
+import { LiveFrame } from "./live/LiveFrame";
 
 const NEW_FOR = 14 * 24 * 60 * 60 * 1000;
 
@@ -23,6 +24,7 @@ export const PortfolioCard = memo(function PortfolioCard({
   badge?: React.ReactNode;
 }) {
   const { open, prefetch } = usePreview();
+  const [live, setLive] = useState(false);
   const isNew = portfolio.isCommunity && Date.now() - portfolio.createdAt < NEW_FOR;
 
   return (
@@ -39,11 +41,14 @@ export const PortfolioCard = memo(function PortfolioCard({
           <span className="ide-dot" />
           <span className="ide-dot" />
           <span className="ide-dot" />
+          {live && <span className="live-dot">Live</span>}
           {badge}
         </div>
-        <PreviewImage name={portfolio.name} url={portfolio.url} preview={portfolio.preview} priority={priority} />
+        <PreviewImage name={portfolio.name} url={portfolio.url} preview={portfolio.preview} priority={priority}>
+          <LiveFrame portfolio={portfolio} onLiveChange={setLive} />
+        </PreviewImage>
         <span className="live-chip" aria-hidden="true">
-          <EyeIcon width={14} height={14} /> Live preview
+          <EyeIcon width={14} height={14} /> Open full preview
         </span>
       </button>
       <div className="card-body">

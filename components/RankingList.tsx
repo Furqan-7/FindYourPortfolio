@@ -8,6 +8,7 @@ import { LikeButton } from "./LikeButton";
 import { PreviewImage } from "./PreviewImage";
 import { usePreview } from "./PreviewProvider";
 import { EyeIcon } from "./Icons";
+import { LiveFrame } from "./live/LiveFrame";
 
 type Ranked = Portfolio & { rank: number; score: number };
 
@@ -34,9 +35,11 @@ function PodiumCard({ p, period, list }: { p: Ranked; period: Period; list: Port
         aria-label={`Open live preview of ${p.name}'s portfolio`}
       >
         <span className={`rank-badge rank-${p.rank}`}>#{p.rank}</span>
-        <PreviewImage name={p.name} url={p.url} preview={p.preview} priority />
+        <PreviewImage name={p.name} url={p.url} preview={p.preview} priority>
+          <LiveFrame portfolio={p} />
+        </PreviewImage>
         <span className="live-chip" aria-hidden="true">
-          <EyeIcon width={14} height={14} /> Live preview
+          <EyeIcon width={14} height={14} /> Open full preview
         </span>
       </button>
       <div className="podium-body">

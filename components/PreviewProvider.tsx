@@ -1,39 +1,33 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Portfolio } from "@/lib/types";
 import { originOf } from "@/lib/format";
 import { LivePreviewModal } from "./LivePreviewModal";
+import { getEmbedStatus } from "./live/embedStatus";
+import { liveSlots } from "./live/liveSlots";
 
 type PreviewApi = {
   open: (portfolio: Portfolio, list?: Portfolio[]) => void;
   /** Warm up the live preview (DNS/TLS + embed check) on hover/focus. */
   prefetch: (portfolio: Portfolio) => void;
-  embedStatus: (id: number) => Promise<boolean | null>;
+  embedStatus: (portfolio: Portfolio) => Promise<boolean | null>;
 };
 
 const PreviewContext = createContext<PreviewApi | null>(null);
 
 export function PreviewProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<{ list: Portfolio[]; index: number } | null>(null);
-  const embedCache = useRef(new Map<number, Promise<boolean | null>>());
   const warmed = useRef(new Set<string>());
 
-  const embedStatus = useCallback((id: number) => {
-    let p = embedCache.current.get(id);
-    if (!p) {
-      p = fetch(`/api/portfolios/${id}/embed`)
-        .then((r) => (r.ok ? r.json() : { frameable: null }))
-        .then((d: { frameable: boolean | null }) => d.frameable)
-        .catch(() => null);
-      embedCache.current.set(id, p);
-      // Don't cache inconclusive answers forever.
-      p.then((v) => {
-        if (v === null) embedCache.current.delete(id);
-      });
-    }
-    return p;
-  }, []);
+  const embedStatus = useCallback((p: Portfolio) => getEmbedStatus(p.id, p.frameable), []);
+
+  // Card iframes pause while the full-screen preview is open, so the site
+  // being previewed gets the whole CPU and network.
+  const isOpen = state !== null;
+  useEffect(() => {
+    liveSlots.setPaused(isOpen);
+  }, [isOpen]);
 
   const prefetch = useCallback(
     (portfolio: Portfolio) => {
@@ -45,7 +39,7 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
         link.href = origin;
         document.head.appendChild(link);
       }
-      void embedStatus(portfolio.id);
+      void embedStatus(portfolio);
     },
     [embedStatus],
   );

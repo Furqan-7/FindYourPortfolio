@@ -7,6 +7,8 @@ import { PERIODS, type LikeCounts, type Period, type PortfolioWithCounts, type R
 // All SQL here is written to run unchanged on both SQLite and Postgres.
 
 const DAY = 24 * 60 * 60 * 1000;
+/** Embed checks older than this are treated as unknown and re-run. */
+export const FRAME_CHECK_TTL = 7 * DAY;
 
 function windowArgs(): [number, number] {
   const now = Date.now();
@@ -26,10 +28,17 @@ const COUNTS_CTE = `
   )`;
 
 const SELECT_COLUMNS = `
-  p.id, p.name, p.url, p.tagline, p.source, p.created_at,
+  p.id, p.name, p.url, p.tagline, p.source, p.created_at, p.frameable, p.frame_checked_at,
   COALESCE(c.total, 0) AS total,
   COALESCE(c.week, 0) AS week,
   COALESCE(c.year, 0) AS year`;
+
+function freshFrameable(r: DbRow): boolean | null {
+  if (r.frameable === null || r.frameable === undefined) return null;
+  const checkedAt = Number(r.frame_checked_at ?? 0);
+  if (!checkedAt || Date.now() - checkedAt > FRAME_CHECK_TTL) return null;
+  return Number(r.frameable) === 1;
+}
 
 // Postgres returns BIGINT / COUNT / SUM as strings, so normalise everything.
 function toPortfolio(r: DbRow): PortfolioWithCounts {
@@ -42,6 +51,7 @@ function toPortfolio(r: DbRow): PortfolioWithCounts {
     preview: localPreviewFor(url),
     isCommunity: r.source === "community",
     createdAt: Number(r.created_at),
+    frameable: freshFrameable(r),
     likes: { total: Number(r.total ?? 0), week: Number(r.week ?? 0), year: Number(r.year ?? 0) },
   };
 }
@@ -133,6 +143,24 @@ export async function getPortfolioRecord(id: number): Promise<PortfolioRecord | 
   };
 }
 
+/** Records for several ids at once (unknown or unapproved ids are skipped). */
+export async function getPortfolioRecords(ids: number[]): Promise<PortfolioRecord[]> {
+  if (ids.length === 0) return [];
+  const db = await getDb();
+  const rows = await db.query(
+    `SELECT id, url, status, frameable, frame_checked_at FROM portfolios
+      WHERE status = 'approved' AND id IN (${ids.map(() => "?").join(", ")})`,
+    ids,
+  );
+  return rows.map((r) => ({
+    id: Number(r.id),
+    url: String(r.url),
+    status: String(r.status),
+    frameable: freshFrameable(r),
+    frameCheckedAt: r.frame_checked_at === null || r.frame_checked_at === undefined ? null : Number(r.frame_checked_at),
+  }));
+}
+
 export async function saveFrameable(id: number, frameable: boolean) {
   const db = await getDb();
   await db.query("UPDATE portfolios SET frameable = ?, frame_checked_at = ? WHERE id = ?", [
@@ -188,7 +216,7 @@ export async function createPortfolio(input: {
     `INSERT INTO portfolios (name, url, url_key, tagline, source, status, submitted_by, created_at)
      VALUES (?, ?, ?, ?, 'community', ?, ?, ?)
      ON CONFLICT (url_key) DO NOTHING
-     RETURNING id, name, url, tagline, source, created_at`,
+     RETURNING id, name, url, tagline, source, created_at, frameable, frame_checked_at`,
     [input.name, input.url, urlKey(input.url), input.tagline, status, input.submittedBy, Date.now()],
   );
   return rows[0] ? { portfolio: toPortfolio(rows[0]), status } : null;
