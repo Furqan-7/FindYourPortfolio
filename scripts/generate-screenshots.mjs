@@ -1,12 +1,20 @@
 /**
  * Screenshot generation pipeline.
  *
- * Captures a 1280x800 WebP preview for every portfolio that doesn't have a
- * valid one yet — seed portfolios from data/portfolios.json plus community
- * submissions stored in the database — writes them to public/previews/ and
- * refreshes data/preview-manifest.json so the app knows which exist.
+ * For every portfolio (seed list in data/portfolios.json plus community
+ * submissions in the database) it captures what's missing:
  *
- *   npm run previews
+ *   - public/previews/<hash>.webp       1280x800 first-screen preview
+ *   - public/previews/full/<hash>.webp  full-page shot (640px wide, up to
+ *                                       4800 CSS px tall) used for the
+ *                                       hover-to-scroll effect on the cards
+ *
+ * and refreshes data/preview-manifest.json + data/fullpage-manifest.json so
+ * the app knows which files exist.
+ *
+ *   npm run previews                       # everything that's missing
+ *   ONLY=example.com npm run previews      # just URLs containing "example.com"
+ *   FORCE=1 ONLY=example.com npm run previews   # re-capture those
  *
  * Uses puppeteer-core with a locally installed Chrome/Chromium. Set
  * CHROME_PATH if it isn't found automatically.
@@ -19,15 +27,22 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PREVIEWS_DIR = path.join(ROOT, "public", "previews");
+const FULL_DIR = path.join(PREVIEWS_DIR, "full");
 const SEED_FILE = path.join(ROOT, "data", "portfolios.json");
 const MANIFEST_FILE = path.join(ROOT, "data", "preview-manifest.json");
-const CONCURRENCY = Number(process.env.CONCURRENCY) || 5;
+const FULL_MANIFEST_FILE = path.join(ROOT, "data", "fullpage-manifest.json");
+const CONCURRENCY = Number(process.env.CONCURRENCY) || 4;
 const VIEWPORT = { width: 1280, height: 800 };
+const FULL_MAX_HEIGHT = 4800; // CSS px (6 screens)
+const FULL_SCALE = 0.5; // 1280 CSS px → 640 px wide image
 const MIN_FILE_SIZE = 5120;
+const ONLY = process.env.ONLY?.toLowerCase();
+const FORCE = process.env.FORCE === "1";
 
-fs.mkdirSync(PREVIEWS_DIR, { recursive: true });
+fs.mkdirSync(FULL_DIR, { recursive: true });
 
 const hashFor = (url) => crypto.createHash("md5").update(url.trim().toLowerCase()).digest("hex");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function webpSize(buf) {
   if (buf.length < 30 || buf.toString("ascii", 0, 4) !== "RIFF" || buf.toString("ascii", 8, 12) !== "WEBP") return null;
@@ -41,24 +56,32 @@ function webpSize(buf) {
   return null;
 }
 
-function isValid(file) {
+/** Viewport shots must be > 400x250; full-page shots must be at least ~1.3 screens tall. */
+function isValid(file, kind = "viewport") {
   try {
     if (fs.statSync(file).size < MIN_FILE_SIZE) return false;
     const dims = webpSize(fs.readFileSync(file));
-    return Boolean(dims && dims.width > 400 && dims.height > 250);
+    if (!dims) return false;
+    return kind === "full" ? dims.width >= 600 && dims.height >= 520 : dims.width > 400 && dims.height > 250;
   } catch {
     return false;
   }
 }
 
-function writeManifest() {
+function writeManifest(dir, file, kind) {
   const hashes = fs
-    .readdirSync(PREVIEWS_DIR)
-    .filter((f) => f.endsWith(".webp") && isValid(path.join(PREVIEWS_DIR, f)))
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".webp") && isValid(path.join(dir, f), kind))
     .map((f) => f.slice(0, -5))
     .sort();
-  fs.writeFileSync(MANIFEST_FILE, JSON.stringify(hashes) + "\n");
+  fs.writeFileSync(file, JSON.stringify(hashes) + "\n");
   return hashes.length;
+}
+
+function writeManifests() {
+  const a = writeManifest(PREVIEWS_DIR, MANIFEST_FILE, "viewport");
+  const b = writeManifest(FULL_DIR, FULL_MANIFEST_FILE, "full");
+  console.log(`🗂  Manifests: ${a} previews, ${b} full-page. Rebuild/redeploy to serve the new screenshots.`);
 }
 
 async function communityUrls() {
@@ -112,15 +135,16 @@ async function main() {
     const hash = hashFor(p.url);
     if (seen.has(hash)) continue;
     seen.add(hash);
+    if (ONLY && !p.url.toLowerCase().includes(ONLY)) continue;
     const target = path.join(PREVIEWS_DIR, `${hash}.webp`);
-    if (!isValid(target)) pending.push({ ...p, target });
+    const fullTarget = path.join(FULL_DIR, `${hash}.webp`);
+    const needViewport = FORCE || !isValid(target);
+    const needFull = FORCE || !isValid(fullTarget, "full");
+    if (needViewport || needFull) pending.push({ ...p, target, fullTarget, needViewport, needFull });
   }
 
-  console.log(`📁 ${seen.size} portfolios, ${seen.size - pending.length} previews up to date, ${pending.length} to capture.`);
-  if (pending.length === 0) {
-    console.log(`🗂  Manifest: ${writeManifest()} previews.`);
-    return;
-  }
+  console.log(`📁 ${seen.size} portfolios, ${pending.length} need screenshots.`);
+  if (pending.length === 0) return writeManifests();
 
   const executablePath = findChrome();
   if (!executablePath) {
@@ -131,35 +155,73 @@ async function main() {
   const browser = await puppeteer.launch({
     executablePath,
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--hide-scrollbars"],
   });
 
-  let ok = 0;
+  let done = 0;
   let failed = 0;
   async function capture(task, attempt = 0) {
     const page = await browser.newPage();
     try {
       await page.setViewport(VIEWPORT);
       await page.setRequestInterception(true);
-      page.on("request", (req) => (["media", "font"].includes(req.resourceType()) ? req.abort() : req.continue()));
-      await page.goto(task.url, { waitUntil: "domcontentloaded", timeout: 15000 });
-      await new Promise((r) => setTimeout(r, 1500));
-      const tmp = `${task.target}.tmp`;
-      await page.screenshot({ path: tmp, type: "webp", quality: 80, clip: { x: 0, y: 0, ...VIEWPORT } });
-      if (!isValid(tmp)) {
-        fs.rmSync(tmp, { force: true });
-        throw new Error("screenshot failed validation");
+      page.on("request", (req) => (req.resourceType() === "media" ? req.abort() : req.continue()));
+      await page.goto(task.url, { waitUntil: "networkidle2", timeout: 25000 }).catch(async (err) => {
+        // Sites with long-polling never go idle; continue if the page rendered.
+        if (!(await page.evaluate(() => document.readyState).catch(() => null))) throw err;
+      });
+      await sleep(1200);
+
+      if (task.needViewport) {
+        const tmp = `${task.target}.tmp`;
+        await page.screenshot({ path: tmp, type: "webp", quality: 80, clip: { x: 0, y: 0, ...VIEWPORT } });
+        if (!isValid(tmp)) {
+          fs.rmSync(tmp, { force: true });
+          throw new Error("preview failed validation");
+        }
+        fs.renameSync(tmp, task.target);
       }
-      fs.renameSync(tmp, task.target);
-      ok++;
-      console.log(`📷 [${ok + failed}/${pending.length}] ${task.name}`);
+
+      if (task.needFull) {
+        // Scroll through the page so lazy images and scroll-triggered
+        // animations render, then return to the top.
+        const height = await page.evaluate(async (max) => {
+          const step = Math.round(window.innerHeight * 0.7);
+          for (let y = 0; y < Math.min(document.documentElement.scrollHeight, max); y += step) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 160));
+          }
+          window.scrollTo(0, 0);
+          return document.documentElement.scrollHeight;
+        }, FULL_MAX_HEIGHT);
+        await sleep(800);
+        if (height >= VIEWPORT.height * 1.3) {
+          await page.setViewport({ ...VIEWPORT, deviceScaleFactor: FULL_SCALE });
+          await sleep(300);
+          const tmp = `${task.fullTarget}.tmp`;
+          await page.screenshot({
+            path: tmp,
+            type: "webp",
+            quality: 60,
+            captureBeyondViewport: true,
+            clip: { x: 0, y: 0, width: VIEWPORT.width, height: Math.min(height, FULL_MAX_HEIGHT) },
+          });
+          if (isValid(tmp, "full")) fs.renameSync(tmp, task.fullTarget);
+          else fs.rmSync(tmp, { force: true });
+        }
+        // Single-screen sites (or ones scrolling inside their own container)
+        // simply get no hover-scroll.
+      }
+      done++;
+      console.log(`📷 [${done + failed}/${pending.length}] ${task.name}`);
     } catch (err) {
+      await page.close().catch(() => {});
       if (attempt < 1) return capture(task, attempt + 1);
       failed++;
-      console.error(`❌ [${ok + failed}/${pending.length}] ${task.name} (${task.url}): ${err.message}`);
-    } finally {
-      await page.close().catch(() => {});
+      console.error(`❌ [${done + failed}/${pending.length}] ${task.name} (${task.url}): ${err.message}`);
+      return;
     }
+    await page.close().catch(() => {});
   }
 
   const queue = [...pending];
@@ -170,8 +232,8 @@ async function main() {
   );
   await browser.close();
 
-  console.log(`\n✅ ${ok} captured, ❌ ${failed} failed in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-  console.log(`🗂  Manifest: ${writeManifest()} previews. Rebuild/redeploy to serve the new screenshots.`);
+  console.log(`\n✅ ${done} done, ❌ ${failed} failed in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+  writeManifests();
 }
 
 main().catch((err) => {

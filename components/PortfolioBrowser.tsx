@@ -147,7 +147,7 @@ export function PortfolioBrowser({
 
       <div className="grid">
         {shown.map((p, i) => (
-          <PortfolioCard key={p.id} portfolio={p} list={filtered} priority={i < 6} />
+          <PortfolioCard key={p.id} portfolio={p} priority={i < 6} />
         ))}
       </div>
       {filtered.length === 0 && (

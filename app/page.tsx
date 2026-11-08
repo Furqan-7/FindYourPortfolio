@@ -4,7 +4,6 @@ import { readVoterId } from "@/lib/voter";
 import { formatCount } from "@/lib/format";
 import { isSortMode, type LikeCounts, type Portfolio } from "@/lib/types";
 import { LikesProvider } from "@/components/LikesProvider";
-import { PreviewProvider } from "@/components/PreviewProvider";
 import { PortfolioBrowser } from "@/components/PortfolioBrowser";
 import { PortfolioCard } from "@/components/PortfolioCard";
 import { HeroPreview } from "@/components/HeroPreview";
@@ -31,7 +30,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
   return (
     <LikesProvider counts={counts} likedIds={likedIds}>
-      <PreviewProvider>
         <header className="hero" id="top">
           <div>
             <p className="eyebrow">Developer portfolio directory</p>
@@ -74,7 +72,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                 <PortfolioCard
                   key={p.id}
                   portfolio={p}
-                  list={topWeek}
                   priority
                   badge={<span className={`rank-badge rank-${i + 1}`}>#{i + 1} this week</span>}
                 />
@@ -91,7 +88,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <main>
           <PortfolioBrowser portfolios={portfolios} initialSort={sort} initialQuery={q} />
         </main>
-      </PreviewProvider>
     </LikesProvider>
   );
 }

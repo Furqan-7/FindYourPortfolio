@@ -4,7 +4,6 @@ import { getRanking, likedPortfolioIds } from "@/lib/portfolios";
 import { readVoterId } from "@/lib/voter";
 import { PERIODS, isPeriod, type LikeCounts, type Period } from "@/lib/types";
 import { LikesProvider } from "@/components/LikesProvider";
-import { PreviewProvider } from "@/components/PreviewProvider";
 import { RankingList } from "@/components/RankingList";
 
 export const metadata: Metadata = {
@@ -28,7 +27,6 @@ export default async function RankingsPage({ searchParams }: PageProps<"/ranking
 
   return (
     <LikesProvider key={period} counts={counts} likedIds={likedIds}>
-      <PreviewProvider>
         <main className="page">
           <header className="page-head">
             <p className="eyebrow">Rankings</p>
@@ -58,7 +56,6 @@ export default async function RankingsPage({ searchParams }: PageProps<"/ranking
             </div>
           )}
         </main>
-      </PreviewProvider>
     </LikesProvider>
   );
 }

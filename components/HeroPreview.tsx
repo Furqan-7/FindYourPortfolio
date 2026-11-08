@@ -1,11 +1,10 @@
 "use client";
 
 import type { Portfolio } from "@/lib/types";
-import { PreviewImage } from "./PreviewImage";
-import { usePreview } from "./PreviewProvider";
 import { useLike } from "./LikesProvider";
 import { displayUrl } from "@/lib/format";
-import { LiveFrame } from "./live/LiveFrame";
+import { SitePreview } from "./live/SitePreview";
+import { useHover } from "./PortfolioCard";
 
 function Row({ p, last }: { p: Portfolio; last: boolean }) {
   const { counts } = useLike(p.id);
@@ -21,7 +20,7 @@ function Row({ p, last }: { p: Portfolio; last: boolean }) {
 }
 
 export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Portfolio[] }) {
-  const { open, prefetch } = usePreview();
+  const { hovered, handlers } = useHover();
   const rows = top.length ? top.slice(0, 3) : [portfolio];
   return (
     <div className="ide-card">
@@ -32,18 +31,17 @@ export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Por
         <span className="ide-tab">rankings.json</span>
         <span className="ide-tab ide-tab-active">live-preview</span>
       </div>
-      <button
-        type="button"
+      <a
         className="hero-preview-container"
-        onClick={() => open(portfolio, top.length ? top : undefined)}
-        onPointerEnter={() => prefetch(portfolio)}
-        aria-label={`Open live preview of ${portfolio.name}'s portfolio`}
+        href={portfolio.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Visit ${portfolio.name}'s portfolio, opens in a new tab`}
+        {...handlers}
       >
-        <PreviewImage name={portfolio.name} url={portfolio.url} preview={portfolio.preview} priority>
-          <LiveFrame portfolio={portfolio} />
-        </PreviewImage>
-        <span className="live-chip">▶ Open full preview · {displayUrl(portfolio.url)}</span>
-      </button>
+        <SitePreview portfolio={portfolio} hovered={hovered} priority />
+        <span className="live-chip">{displayUrl(portfolio.url)} ↗</span>
+      </a>
       <pre className="ide-pane">
         <span className="p">[</span>
         {"\n"}

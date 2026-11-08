@@ -6,9 +6,9 @@ import { displayUrl, formatCount } from "@/lib/format";
 import { useLike } from "./LikesProvider";
 import { LikeButton } from "./LikeButton";
 import { PreviewImage } from "./PreviewImage";
-import { usePreview } from "./PreviewProvider";
-import { EyeIcon } from "./Icons";
-import { LiveFrame } from "./live/LiveFrame";
+import { ExternalIcon } from "./Icons";
+import { SitePreview } from "./live/SitePreview";
+import { useHover } from "./PortfolioCard";
 
 type Ranked = Portfolio & { rank: number; score: number };
 
@@ -23,30 +23,27 @@ function Score({ id, period }: { id: number; period: Period }) {
   );
 }
 
-function PodiumCard({ p, period, list }: { p: Ranked; period: Period; list: Portfolio[] }) {
-  const { open, prefetch } = usePreview();
+function PodiumCard({ p, period }: { p: Ranked; period: Period }) {
+  const { hovered, handlers } = useHover();
   return (
-    <article className={`podium-card podium-${p.rank}`}>
-      <button
-        type="button"
-        className="podium-preview"
-        onClick={() => open(p, list)}
-        onPointerEnter={() => prefetch(p)}
-        aria-label={`Open live preview of ${p.name}'s portfolio`}
-      >
+    <article className={`podium-card podium-${p.rank}`} {...handlers}>
+      <a
+        className="card-link"
+        href={p.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Visit ${p.name}'s portfolio, opens in a new tab`}
+      />
+      <div className="podium-preview">
         <span className={`rank-badge rank-${p.rank}`}>#{p.rank}</span>
-        <PreviewImage name={p.name} url={p.url} preview={p.preview} priority>
-          <LiveFrame portfolio={p} />
-        </PreviewImage>
-        <span className="live-chip" aria-hidden="true">
-          <EyeIcon width={14} height={14} /> Open full preview
+        <SitePreview portfolio={p} hovered={hovered} priority />
+        <span className="visit-chip" aria-hidden="true">
+          Visit site <ExternalIcon width={13} height={13} />
         </span>
-      </button>
+      </div>
       <div className="podium-body">
         <div className="podium-text">
-          <a className="podium-name" href={p.url} target="_blank" rel="noopener noreferrer">
-            {p.name}
-          </a>
+          <span className="podium-name">{p.name}</span>
           <span className="podium-tagline">{p.tagline || displayUrl(p.url)}</span>
         </div>
         <div className="podium-meta">
@@ -58,24 +55,22 @@ function PodiumCard({ p, period, list }: { p: Ranked; period: Period; list: Port
   );
 }
 
-function Row({ p, period, list }: { p: Ranked; period: Period; list: Portfolio[] }) {
-  const { open, prefetch } = usePreview();
+function Row({ p, period }: { p: Ranked; period: Period }) {
   return (
     <li className="rank-row">
+      <a
+        className="card-link"
+        href={p.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Visit ${p.name}'s portfolio, opens in a new tab`}
+      />
       <span className="rank-num">{p.rank}</span>
-      <button
-        type="button"
-        className="rank-thumb"
-        onClick={() => open(p, list)}
-        onPointerEnter={() => prefetch(p)}
-        aria-label={`Open live preview of ${p.name}'s portfolio`}
-      >
+      <span className="rank-thumb">
         <PreviewImage name={p.name} url={p.url} preview={p.preview} />
-      </button>
+      </span>
       <div className="rank-text">
-        <a href={p.url} target="_blank" rel="noopener noreferrer" className="rank-name">
-          {p.name}
-        </a>
+        <span className="rank-name">{p.name}</span>
         <span className="rank-tagline">{p.tagline || displayUrl(p.url)}</span>
       </div>
       <Score id={p.id} period={period} />
@@ -91,13 +86,13 @@ export function RankingList({ ranking, period }: { ranking: Ranked[]; period: Pe
     <section aria-label={PERIODS[period].title}>
       <div className="podium">
         {podium.map((p) => (
-          <PodiumCard key={p.id} p={p} period={period} list={ranking} />
+          <PodiumCard key={p.id} p={p} period={period} />
         ))}
       </div>
       {rest.length > 0 && (
         <ol className="rank-list" start={4}>
           {rest.map((p) => (
-            <Row key={p.id} p={p} period={period} list={ranking} />
+            <Row key={p.id} p={p} period={period} />
           ))}
         </ol>
       )}
