@@ -19,7 +19,15 @@ function Row({ p, last }: { p: Portfolio; last: boolean }) {
   );
 }
 
-export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Portfolio[] }) {
+export function HeroPreview({
+  portfolio,
+  top,
+  featured = false,
+}: {
+  portfolio: Portfolio;
+  top: Portfolio[];
+  featured?: boolean;
+}) {
   const { hovered, handlers } = useHover();
   const rows = top.length ? top.slice(0, 3) : [portfolio];
   return (
@@ -29,7 +37,7 @@ export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Por
         <span className="ide-dot" />
         <span className="ide-dot" />
         <span className="ide-tab">rankings.json</span>
-        <span className="ide-tab ide-tab-active">live-preview</span>
+        <span className="ide-tab ide-tab-active">{featured ? "featured" : "live-preview"}</span>
       </div>
       <a
         className="hero-preview-container"
@@ -40,7 +48,10 @@ export function HeroPreview({ portfolio, top }: { portfolio: Portfolio; top: Por
         {...handlers}
       >
         <SitePreview portfolio={portfolio} hovered={hovered} priority />
-        <span className="live-chip">{displayUrl(portfolio.url)} ↗</span>
+        <span className="live-chip">
+          {featured ? `★ Featured · ${portfolio.name} · ` : ""}
+          {displayUrl(portfolio.url)} ↗
+        </span>
       </a>
       <pre className="ide-pane">
         <span className="p">[</span>

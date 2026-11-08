@@ -109,6 +109,7 @@ export function LiveFrame({
           title={`${portfolio.name} (live)`}
           tabIndex={-1}
           loading="eager"
+          scrolling="no"
           sandbox="allow-scripts allow-same-origin"
           allow="autoplay 'none'; camera 'none'; microphone 'none'; geolocation 'none'"
           referrerPolicy="strict-origin-when-cross-origin"

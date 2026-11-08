@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listPortfolios, likedPortfolioIds } from "@/lib/portfolios";
 import { readVoterId } from "@/lib/voter";
+import { findFeatured } from "@/lib/featured";
 import { formatCount } from "@/lib/format";
 import { isSortMode, type LikeCounts, type Portfolio } from "@/lib/types";
 import { LikesProvider } from "@/components/LikesProvider";
@@ -22,7 +23,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     .filter((p) => p.likes.week > 0)
     .sort((a, b) => b.likes.week - a.likes.week || b.likes.total - a.likes.total || a.name.localeCompare(b.name));
   const topWeek = byWeek.slice(0, 4).map(({ likes: _likes, ...p }) => p);
-  const hero = topWeek.find((p) => p.preview) ?? portfolios.find((p) => p.preview) ?? portfolios[0];
+  const featured = findFeatured(portfolios);
+  const hero = featured ?? topWeek.find((p) => p.preview) ?? portfolios.find((p) => p.preview) ?? portfolios[0];
   const total = formatCount(portfolios.length);
 
   const sort = isSortMode(sp.sort) ? sp.sort : "az";
@@ -38,8 +40,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
               before you build one.
             </h1>
             <p className="lede">
-              {total} real developer portfolios. Search by name or role, open a live preview in one click, vote for
-              your favourites — then go build something better.
+              {total} real developer portfolios, shown live. Search by name or role, hover a card to scroll through
+              the site, like your favourites — then go build something better.
             </p>
             <div className="hero-ctas">
               <a className="btn btn-primary" href="#browse">
@@ -53,7 +55,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
               </Link>
             </div>
           </div>
-          {hero && <HeroPreview portfolio={hero} top={topWeek} />}
+          {hero && <HeroPreview portfolio={hero} top={topWeek} featured={Boolean(featured)} />}
         </header>
 
         <section className="top-week" aria-labelledby="top-week-title">
